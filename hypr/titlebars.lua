@@ -24,6 +24,9 @@ hl.config = function(values)
     bars.bar_text_align = "center"
     bars.button_rounding = BUTTON_SIZE // 2
     bars.icon_on_hover = true
+    -- Unfocused windows get grey lights, as on macOS, rather than buttons in
+    -- the titlebar's own colour that vanish into it.
+    bars.inactive_button_color = "rgba(8e8e9399)"
     bars.bar_button_padding = 8
   end
   return config(values)
