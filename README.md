@@ -10,7 +10,8 @@ macOS-style titlebars.
 - Pinned apps come first and are drawn in full; click one to launch it.
 - Open apps that aren't pinned follow a separator, and running apps get a dot.
 - Downloads and the Trash sit at the trailing end, after another separator.
-  The Trash shows when it has something in it and opens in Files on click.
+  The Trash icon fills up when there is something in it, and a click opens it
+  in Files.
 
 Everything else works as in Omarchy's own dock: drag to reorder or pin,
 right-click for app actions, and the apps button for every app. Its position
