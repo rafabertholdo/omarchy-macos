@@ -99,7 +99,11 @@ Item {
       })
     }
 
-    return DockModel.orderItems(DockModel.buildItems(pinned, windows), root.order)
+    // Pinned apps lead and open apps that are not pinned follow, as on macOS;
+    // each group keeps the dock's own order.
+    var ordered = DockModel.orderItems(DockModel.buildItems(pinned, windows), root.order)
+    return ordered.filter(function(item) { return item.pinned })
+      .concat(ordered.filter(function(item) { return !item.pinned }))
   }
 
   readonly property var itemsByKey: {
@@ -240,6 +244,17 @@ Item {
     if (!item) return
     var windows = item.windows.slice()
     for (var i = 0; i < windows.length; i++) windows[i].toplevel.close()
+  }
+
+  readonly property int pinnedCount: root.items.filter(function(item) { return item.pinned }).length
+
+  readonly property string downloadsDir: {
+    var dir = String(Quickshell.env("XDG_DOWNLOAD_DIR") || "")
+    return dir || Quickshell.env("HOME") + "/Downloads"
+  }
+
+  function openDownloads() {
+    Util.execDetached("xdg-open " + Util.shellQuote(root.downloadsDir))
   }
 
   function openApps() {

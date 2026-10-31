@@ -5,7 +5,8 @@ A macOS-style dock and titlebars for [Omarchy](https://omarchy.org) 4.5+.
 - **Dock**: shown on every workspace, not only floating ones, on a rounded,
   theme-coloured panel. It reserves its screen edge, so maximized and tiled
   windows stop above it. Pinned apps are drawn in full and launch on click, and
-  running apps get a dot.
+  running apps get a dot. Open apps that aren't pinned follow a separator, and
+  a Downloads folder sits at the trailing end after another one.
 - **Titlebars**: red, yellow, and green buttons (close, minimize, maximize) on
   the leading side, with icons on hover and a centred title. Titlebars show on
   floating workspaces; `Super + L` cycles a workspace's layout.
@@ -29,6 +30,11 @@ links `hypr/titlebars.lua` into `~/.config/hypr/` and requires it from
 replaces is backed up next to the original as a hidden `.<name>.bak.<time>`.
 
 To undo it: `./uninstall.sh`.
+
+## Editing
+
+The shell doesn't hot-reload a plugin through a symlink, so after editing
+`dock/` run `omarchy restart shell`.
 
 ## How it works
 

@@ -323,7 +323,7 @@ PanelWindow {
     Grid {
       id: slots
       anchors.centerIn: parent
-      columns: window.vertical ? 1 : appRepeater.count + 1
+      columns: window.vertical ? 1 : appRepeater.count + 2
 
       AppsSlot {}
 
@@ -333,7 +333,19 @@ PanelWindow {
 
         delegate: AppSlot {}
       }
+
+      DownloadsSlot {}
     }
+
+    // Lines between the pinned apps, the open ones that are not pinned, and
+    // Downloads. They sit in the gap between two icons rather than taking a slot
+    // of their own, so dragging still counts slots in whole widths.
+    Separator {
+      // After the apps button and the pinned apps.
+      slotsBefore: 1 + (window.dock ? window.dock.pinnedCount : 0)
+      visible: !!window.dock && window.dock.pinnedCount < appRepeater.count
+    }
+    Separator { slotsBefore: 1 + appRepeater.count }
   }
 
   component Slot: Item {
@@ -354,6 +366,44 @@ PanelWindow {
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
       acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+    }
+  }
+
+  component Separator: Rectangle {
+    property int slotsBefore: 0
+    readonly property int offset: window.panelPadding + slotsBefore * window.slotSize
+    readonly property int inset: window.panelPadding + window.iconInset / 2
+
+    color: Util.alpha(Commons.Color.popups.text, 0.25)
+    x: window.vertical ? inset : offset
+    y: window.vertical ? offset : inset
+    width: window.vertical ? body.width - inset * 2 : Style.normalBorderWidth
+    height: window.vertical ? Style.normalBorderWidth : body.height - inset * 2
+  }
+
+  component DownloadsSlot: Slot {
+    id: downloadsSlot
+
+    mouse.onClicked: {
+      window.closeMenu()
+      if (window.dock) window.dock.openDownloads()
+    }
+
+    Image {
+      x: window.iconInset
+      y: window.iconInset
+      width: window.iconSize
+      height: window.iconSize
+      sourceSize: Qt.size(window.iconSize * 2, window.iconSize * 2)
+      source: Quickshell.iconPath("folder-download", "folder")
+      fillMode: Image.PreserveAspectFit
+      asynchronous: true
+      smooth: true
+      mipmap: true
+      scale: downloadsSlot.hovered ? 1.15 : 1
+      transformOrigin: window.popOrigin
+
+      Behavior on scale { NumberAnimation { duration: Style.duration(120); easing.type: Easing.OutCubic } }
     }
   }
 
