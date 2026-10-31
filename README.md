@@ -45,3 +45,8 @@ alignment, colours, and button order on the way through.
 Both lean on Omarchy internals, so an Omarchy update can break them. If the
 dock disappears after one, compare `dock/` with
 `/usr/share/omarchy/shell/plugins/dock/`.
+
+## License
+
+MIT. `dock/` is a modified copy of Omarchy's dock plugin, also MIT; see
+[LICENSE](LICENSE).
