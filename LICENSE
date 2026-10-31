@@ -1,6 +1,6 @@
 Copyright (c) 2026 Rafael Bertholdo
 
-dock/ is derived from Omarchy's dock plugin:
+The dock plugin (*.qml, DockModel.js) is derived from Omarchy's dock plugin:
 
 Copyright (c) David Heinemeier Hansson
 

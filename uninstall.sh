@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Puts Omarchy's own dock and titlebars back. Leaves this checkout and the dock
-# pins in shell.json alone.
+# Puts Omarchy's own dock and titlebars back after install.sh. Leaves this
+# checkout and the dock pins in shell.json alone.
 
 set -euo pipefail
 
-PLUGIN_ID="rafabertholdo.dock"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ID="$(jq -r .id "$REPO/manifest.json")"
 PLUGINS_DIR="$HOME/.config/omarchy/plugins"
 HYPR_DIR="$HOME/.config/hypr"
 
@@ -17,12 +18,14 @@ omarchy plugin disable "$PLUGIN_ID" >/dev/null 2>&1 || true
 omarchy-shell shell rescanPlugins >/dev/null
 omarchy plugin enable omarchy.dock >/dev/null
 
-say "Removing the titlebar override"
-sed -i '/^require("hypr.titlebars")$/d' "$HYPR_DIR/hyprland.lua"
-[[ -L $HYPR_DIR/titlebars.lua ]] && rm "$HYPR_DIR/titlebars.lua"
+if [[ -L $HYPR_DIR/titlebars.lua ]]; then
+  say "Removing the titlebar override"
+  sed -i '/^require("hypr.titlebars")$/d' "$HYPR_DIR/hyprland.lua"
+  rm "$HYPR_DIR/titlebars.lua"
+  hyprctl reload >/dev/null
+fi
 
 say "Reloading"
-hyprctl reload >/dev/null
 omarchy restart shell >/dev/null 2>&1 || true
 
 say "Done."

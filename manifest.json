@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.rafabertholdo.macos-dock",
+  "name": "macOS Dock",
+  "version": "1.1.0",
+  "author": "Rafael Bertholdo",
+  "description": "macOS-style dock: always visible on a rounded panel, reserves its screen edge, pinned apps first, open apps after a separator, and Downloads at the end",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Dock.qml"
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.dock"
+  }
+}

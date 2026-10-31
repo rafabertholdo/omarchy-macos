@@ -1,19 +1,31 @@
 #!/bin/bash
 
-# Installs the macOS-style dock and titlebars into an Omarchy 4.5+ desktop.
-# Everything is symlinked from this checkout, so `git pull` updates it in place.
-# Safe to run again.
+# Installs the macOS Dock from this checkout into an Omarchy 4.5+ desktop, and
+# with --titlebars the macOS-style titlebars too. Everything is symlinked, so
+# `git pull` updates it in place. Safe to run again.
+#
+# Usage: ./install.sh [--titlebars]
 
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_ID="rafabertholdo.dock"
+PLUGIN_ID="$(jq -r .id "$REPO/manifest.json")"
+OLD_PLUGIN_IDS=(rafabertholdo.dock)
 PLUGINS_DIR="$HOME/.config/omarchy/plugins"
 HYPR_DIR="$HOME/.config/hypr"
 STAMP="$(date +%Y%m%d%H%M%S)"
 
 say() { echo -e "\e[32m==>\e[0m $*"; }
 fail() { echo "install.sh: $*" >&2; exit 1; }
+
+titlebars=0
+for arg in "$@"; do
+  case "$arg" in
+  --titlebars) titlebars=1 ;;
+  -h | --help) sed -n '3,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  *) fail "unknown option: $arg" ;;
+  esac
+done
 
 [[ -d ${OMARCHY_PATH:-/usr/share/omarchy}/shell/plugins/dock ]] ||
   fail "this Omarchy has no dock plugin; it needs Omarchy 4.5 or newer"
@@ -35,9 +47,18 @@ link() {
   ln -s "$source" "$target"
 }
 
+# Earlier versions of this dock used another id; only links are removed.
+for old in "${OLD_PLUGIN_IDS[@]}"; do
+  if [[ -L $PLUGINS_DIR/$old ]]; then
+    say "Removing the old $old link"
+    omarchy plugin disable "$old" >/dev/null 2>&1 || true
+    rm "$PLUGINS_DIR/$old"
+  fi
+done
+
 say "Linking the dock plugin"
 mkdir -p "$PLUGINS_DIR"
-link "$REPO/dock" "$PLUGINS_DIR/$PLUGIN_ID"
+link "$REPO" "$PLUGINS_DIR/$PLUGIN_ID"
 omarchy-shell shell rescanPlugins >/dev/null
 
 say "Replacing Omarchy's dock with it"
@@ -50,24 +71,28 @@ if [[ -s $REPO/dock-pins.txt ]]; then
   (( ${#pins[@]} > 0 )) && omarchy dock pinned "${pins[@]}" >/dev/null
 fi
 
-say "Linking the titlebar override"
-link "$REPO/hypr/titlebars.lua" "$HYPR_DIR/titlebars.lua"
+if (( titlebars )); then
+  say "Linking the titlebar override"
+  link "$REPO/hypr/titlebars.lua" "$HYPR_DIR/titlebars.lua"
 
-# The override wraps calls Omarchy makes from default.hypr.toggles, so it has to
-# be required before that line.
-config="$HYPR_DIR/hyprland.lua"
-if ! grep -q '^require("hypr.titlebars")' "$config"; then
-  grep -q '^require("default.hypr.toggles")' "$config" ||
-    fail "can't find require(\"default.hypr.toggles\") in $config; add require(\"hypr.titlebars\") before it by hand"
-  cp "$config" "$config.bak.$STAMP"
-  sed -i 's/^require("default.hypr.toggles")/require("hypr.titlebars")\n\n&/' "$config"
+  # The override wraps calls Omarchy makes from default.hypr.toggles, so it has
+  # to be required before that line.
+  config="$HYPR_DIR/hyprland.lua"
+  if ! grep -q '^require("hypr.titlebars")' "$config"; then
+    grep -q '^require("default.hypr.toggles")' "$config" ||
+      fail "can't find require(\"default.hypr.toggles\") in $config; add require(\"hypr.titlebars\") before it by hand"
+    cp "$config" "$HYPR_DIR/.hyprland.lua.bak.$STAMP"
+    sed -i 's/^require("default.hypr.toggles")/require("hypr.titlebars")\n\n&/' "$config"
+  fi
 fi
 
 say "Reloading"
-hyprctl reload >/dev/null
+(( titlebars )) && hyprctl reload >/dev/null
 omarchy restart shell >/dev/null 2>&1 || true
 
-errors="$(hyprctl configerrors)"
-[[ -z ${errors//[[:space:]]/} ]] || fail "Hyprland reported config errors:\n$errors"
+if (( titlebars )); then
+  errors="$(hyprctl configerrors)"
+  [[ -z ${errors//[[:space:]]/} ]] || fail "Hyprland reported config errors:\n$errors"
+fi
 
-say "Done. Titlebars show on floating workspaces (Super + L to switch layouts)."
+say "Done."
