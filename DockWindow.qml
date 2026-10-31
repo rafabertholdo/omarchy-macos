@@ -44,7 +44,7 @@ PanelWindow {
   // maximized window hides the dock the same way, so it can still be called up.
   readonly property bool autohide: !!dock && dock.autohide
   property bool revealed: false
-  readonly property bool menuOpen: menuItem !== null || settingsMenu
+  readonly property bool menuOpen: menuItem !== null || settingsMenu || trashMenu
   readonly property bool tucked: autohide && !(revealed || menuOpen || dragging || insertIndex >= 0)
   readonly property bool contentShown: shown && !tucked
 
@@ -135,6 +135,9 @@ PanelWindow {
   property Item menuSlot: null
   // The apps button's menu: where the dock sits and whether it hides.
   property bool settingsMenu: false
+  // The Trash's menu, and whether it is asking to confirm emptying it.
+  property bool trashMenu: false
+  property bool trashConfirm: false
 
   onWorkspaceIdChanged: if (dock) dock.readMode(workspaceId)
   onShownChanged: {
@@ -146,13 +149,23 @@ PanelWindow {
 
   function openMenu(item, slot) {
     window.settingsMenu = false
+    window.trashMenu = false
     window.menuItem = item
     window.menuSlot = slot
   }
 
   function openSettingsMenu(slot) {
     window.menuItem = null
+    window.trashMenu = false
     window.settingsMenu = true
+    window.menuSlot = slot
+  }
+
+  function openTrashMenu(slot) {
+    window.menuItem = null
+    window.settingsMenu = false
+    window.trashConfirm = false
+    window.trashMenu = true
     window.menuSlot = slot
   }
 
@@ -172,6 +185,8 @@ PanelWindow {
   function closeMenu() {
     window.menuItem = null
     window.settingsMenu = false
+    window.trashMenu = false
+    window.trashConfirm = false
     window.menuSlot = null
     if (window.autohide) hideTimer.restart()
   }
@@ -389,9 +404,11 @@ PanelWindow {
   }
 
   component TrashSlot: PlaceSlot {
+    id: trashSlot
     iconName: window.dock && window.dock.trashFull ? "user-trash-full" : "user-trash"
     fallbackIconName: "user-trash"
     onActivated: window.dock.openTrash()
+    onContextRequested: window.openTrashMenu(trashSlot)
   }
 
   // A folder at the trailing end of the dock that opens on click.
@@ -401,8 +418,13 @@ PanelWindow {
     property string iconName
     property string fallbackIconName
     signal activated()
+    signal contextRequested()
 
-    mouse.onClicked: {
+    mouse.onClicked: function(event) {
+      if (event.button === Qt.RightButton) {
+        placeSlot.contextRequested()
+        return
+      }
       window.closeMenu()
       if (window.dock) placeSlot.activated()
     }
@@ -633,7 +655,7 @@ PanelWindow {
     readonly property bool hasEntry: !!item && !!window.dock && !!window.dock.entryFor(item)
     readonly property bool running: !!item && item.windows.length > 0
 
-    visible: window.contentShown && (!!item || window.settingsMenu)
+    visible: window.contentShown && (!!item || window.settingsMenu || window.trashMenu)
     width: Math.max(Style.space(140), menuColumn.implicitWidth) + padding * 2
     height: menuColumn.implicitHeight + padding * 2
     x: window.popupX(window.menuSlot, menu)
@@ -686,6 +708,42 @@ PanelWindow {
         text: Commons.I18n.t("dock.quit")
         onTriggered: window.dock.quit(menu.item)
       }
+
+      MenuRow {
+        visible: window.trashMenu && !window.trashConfirm
+        text: "Open"
+        onTriggered: window.dock.openTrash()
+      }
+
+      MenuRow {
+        visible: window.trashMenu && !window.trashConfirm
+        enabled: !!window.dock && window.dock.trashFull
+        keepOpen: true
+        text: "Empty Trash…"
+        onTriggered: window.trashConfirm = true
+      }
+
+      // Emptying the trash can't be undone, so it takes a second, explicit click.
+      MenuRow {
+        visible: window.trashMenu && window.trashConfirm
+        enabled: false
+        text: {
+          var count = window.dock ? window.dock.trashCount : 0
+          return "Delete " + count + (count === 1 ? " item" : " items") + " for good?"
+        }
+      }
+
+      MenuRow {
+        visible: window.trashMenu && window.trashConfirm
+        destructive: true
+        text: "Empty Trash"
+        onTriggered: window.dock.emptyTrash()
+      }
+
+      MenuRow {
+        visible: window.trashMenu && window.trashConfirm
+        text: "Cancel"
+      }
     }
   }
 
@@ -694,12 +752,15 @@ PanelWindow {
 
     property string text: ""
     property bool checked: false
+    // Stays open after a click, for a row that changes what the menu shows.
+    property bool keepOpen: false
+    property bool destructive: false
     signal triggered()
 
     width: parent ? parent.width : 0
     height: visible ? Style.spacing.popupRowHeight : 0
     radius: Style.cornerRadius
-    color: rowMouse.containsMouse ? Style.hoverFill : "transparent"
+    color: row.enabled && rowMouse.containsMouse ? Style.hoverFill : "transparent"
 
     Text {
       anchors.verticalCenter: parent.verticalCenter
@@ -707,7 +768,8 @@ PanelWindow {
       anchors.leftMargin: Style.spacing.controlPaddingX
       textFormat: Text.PlainText
       text: row.text
-      color: Commons.Color.popups.text
+      color: row.destructive ? Commons.Color.urgent : Commons.Color.popups.text
+      opacity: row.enabled ? 1 : 0.5
       font.family: Style.font.family
       font.pixelSize: Style.font.body
     }
@@ -728,10 +790,11 @@ PanelWindow {
       id: rowMouse
       anchors.fill: parent
       hoverEnabled: true
-      cursorShape: Qt.PointingHandCursor
+      cursorShape: row.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
       onClicked: {
+        if (!row.enabled) return
         row.triggered()
-        window.closeMenu()
+        if (!row.keepOpen) window.closeMenu()
       }
     }
   }

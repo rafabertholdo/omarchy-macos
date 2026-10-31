@@ -264,8 +264,15 @@ Item {
   }
   readonly property bool trashFull: trashFiles.count > 0
 
+  readonly property int trashCount: trashFiles.count
+
   function openTrash() {
     Util.execDetached("gio open trash:///")
+  }
+
+  // Deletes everything in the trash for good; the dock asks first.
+  function emptyTrash() {
+    Util.execDetached("gio trash --empty")
   }
 
   function openDownloads() {
