@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
+import Qt.labs.folderlistmodel
 import qs.Commons
 import "DockModel.js" as DockModel
 import "file:///usr/share/omarchy/shell/services" as Services
@@ -251,6 +252,20 @@ Item {
   readonly property string downloadsDir: {
     var dir = String(Quickshell.env("XDG_DOWNLOAD_DIR") || "")
     return dir || Quickshell.env("HOME") + "/Downloads"
+  }
+
+  // The trash's own listing, so its icon follows it filling and emptying.
+  FolderListModel {
+    id: trashFiles
+    folder: "file://" + Quickshell.env("HOME") + "/.local/share/Trash/files"
+    showHidden: true
+    showDirs: true
+    showDotAndDotDot: false
+  }
+  readonly property bool trashFull: trashFiles.count > 0
+
+  function openTrash() {
+    Util.execDetached("gio open trash:///")
   }
 
   function openDownloads() {

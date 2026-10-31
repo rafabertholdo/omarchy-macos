@@ -9,7 +9,8 @@ macOS-style titlebars.
   instead of sliding under it.
 - Pinned apps come first and are drawn in full; click one to launch it.
 - Open apps that aren't pinned follow a separator, and running apps get a dot.
-- A Downloads folder sits at the trailing end, after another separator.
+- Downloads and the Trash sit at the trailing end, after another separator.
+  The Trash shows when it has something in it and opens in Files on click.
 
 Everything else works as in Omarchy's own dock: drag to reorder or pin,
 right-click for app actions, and the apps button for every app. Its position
@@ -19,7 +20,7 @@ and auto-hide are set with `omarchy dock` or under _Appearance > Dock_.
 
 - Omarchy 4.5 or newer. The dock first shipped in 4.5, and this plugin uses
   Omarchy's app library from `/usr/share/omarchy/shell/services`.
-- `xdg-open` (part of Omarchy) to open the Downloads folder.
+- `xdg-open` and `gio` (both part of Omarchy) to open Downloads and the Trash.
 
 ## Install
 

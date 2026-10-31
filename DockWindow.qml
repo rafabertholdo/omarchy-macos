@@ -323,7 +323,7 @@ PanelWindow {
     Grid {
       id: slots
       anchors.centerIn: parent
-      columns: window.vertical ? 1 : appRepeater.count + 2
+      columns: window.vertical ? 1 : appRepeater.count + 3
 
       AppsSlot {}
 
@@ -335,6 +335,7 @@ PanelWindow {
       }
 
       DownloadsSlot {}
+      TrashSlot {}
     }
 
     // Lines between the pinned apps, the open ones that are not pinned, and
@@ -381,12 +382,29 @@ PanelWindow {
     height: window.vertical ? Style.normalBorderWidth : body.height - inset * 2
   }
 
-  component DownloadsSlot: Slot {
-    id: downloadsSlot
+  component DownloadsSlot: PlaceSlot {
+    iconName: "folder-download"
+    fallbackIconName: "folder"
+    onActivated: window.dock.openDownloads()
+  }
+
+  component TrashSlot: PlaceSlot {
+    iconName: window.dock && window.dock.trashFull ? "user-trash-full" : "user-trash"
+    fallbackIconName: "user-trash"
+    onActivated: window.dock.openTrash()
+  }
+
+  // A folder at the trailing end of the dock that opens on click.
+  component PlaceSlot: Slot {
+    id: placeSlot
+
+    property string iconName
+    property string fallbackIconName
+    signal activated()
 
     mouse.onClicked: {
       window.closeMenu()
-      if (window.dock) window.dock.openDownloads()
+      if (window.dock) placeSlot.activated()
     }
 
     Image {
@@ -395,12 +413,12 @@ PanelWindow {
       width: window.iconSize
       height: window.iconSize
       sourceSize: Qt.size(window.iconSize * 2, window.iconSize * 2)
-      source: Quickshell.iconPath("folder-download", "folder")
+      source: Quickshell.iconPath(placeSlot.iconName, placeSlot.fallbackIconName)
       fillMode: Image.PreserveAspectFit
       asynchronous: true
       smooth: true
       mipmap: true
-      scale: downloadsSlot.hovered ? 1.15 : 1
+      scale: placeSlot.hovered ? 1.15 : 1
       transformOrigin: window.popOrigin
 
       Behavior on scale { NumberAnimation { duration: Style.duration(120); easing.type: Easing.OutCubic } }
